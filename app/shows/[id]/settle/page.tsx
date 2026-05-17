@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  FileWarning,
   ArrowRight,
   Check,
   AlertTriangle,
@@ -11,6 +10,9 @@ import {
   XCircle,
   Wallet,
   TrendingUp,
+  Info,
+  ShieldAlert,
+  TrendingDown,
 } from "lucide-react";
 import { getShowById } from "@/lib/queries";
 import {
@@ -22,11 +24,8 @@ import {
   Field,
 } from "@/components/ui/card";
 import { StatusBadge, DealTypeBadge, PlainBadge } from "@/components/ui/badge";
-import { calculateSettlement } from "@/lib/dealMath";
-import {
-  formatMoney,
-  formatShowDateFull,
-} from "@/lib/format";
+import { calculateSettlement, type DealHealthWarning } from "@/lib/dealMath";
+import { formatMoney, formatShowDateFull } from "@/lib/format";
 import type { Settlement, Recoup } from "@/db/schema";
 import { Logomark } from "@/components/brand/logo";
 
@@ -38,6 +37,29 @@ const RECOUP_LABELS: Record<Recoup["category"], string> = {
   damages: "Damages",
   other: "Other",
 };
+
+const DEAL_TYPE_LABELS: Record<string, string> = {
+  flat: "flat guarantee",
+  percentage_of_gross: "percentage of gross",
+  percentage_of_net: "percentage of net",
+  vs: "vs deal",
+  door: "door deal",
+};
+
+/** Positive TM sign-off text patterns that indicate in-room agreement */
+const POSITIVE_SIGNOFF_PATTERNS = [
+  /looks good/i,
+  /ok\b/i,
+  /👍/,
+  /sign off/i,
+  /wire/i,
+  /good night/i,
+];
+
+function isPositiveSignoff(text: string | null | undefined): boolean {
+  if (!text) return false;
+  return POSITIVE_SIGNOFF_PATTERNS.some((p) => p.test(text));
+}
 
 export default async function SettlePage({
   params,
@@ -68,6 +90,7 @@ export default async function SettlePage({
     expenses,
     venueCapacity: data.venue?.capacity ?? undefined,
   });
+
   const grossSoFar = ticketSales.reduce((sum, t) => sum + t.gross, 0);
   const totalFees = ticketSales.reduce((sum, t) => sum + t.fees, 0);
   const totalExpenses = expenses
@@ -75,14 +98,29 @@ export default async function SettlePage({
     .reduce((sum, e) => sum + e.amount, 0);
 
   const disputedRecoups = recoups.filter((r) => r.status === "disputed");
-  const isDisputed = settlement?.status === "disputed" || settlement?.status === "revised" || !!settlement?.disputedAt;
-  const disputedRecoupValue = disputedRecoups.reduce((s, r) => s + r.amount, 0);
+  const isDisputed =
+    settlement?.status === "disputed" ||
+    settlement?.status === "revised" ||
+    !!settlement?.disputedAt;
+  const disputedRecoupValue = disputedRecoups.reduce(
+    (s, r) => s + r.amount,
+    0,
+  );
+
+  // Key anomaly: "disputed" status but TM signed off positively in the room.
+  // The dispute came from the agent the *next morning*, not the TM at the table.
+  const tmSignedOffPositively =
+    isDisputed && isPositiveSignoff(settlement?.signoffText);
+
+  const healthWarnings = calc.healthWarnings ?? [];
 
   return (
-    <div className={`px-12 py-10 max-w-7xl ${isDisputed ? "bg-gradient-to-b from-rose-50/30 via-canvas to-canvas" : ""}`}>
+    <div
+      className={`px-12 py-10 max-w-7xl ${isDisputed ? "bg-gradient-to-b from-rose-50/30 via-canvas to-canvas" : ""}`}
+    >
       <BackLink showId={show.id} />
 
-      <div className="mb-20">
+      <div className="mb-12">
         <div className="flex items-center gap-1.5 mb-4">
           <StatusBadge status={show.status} />
           <DealTypeBadge type={deal.dealType} />
@@ -99,7 +137,10 @@ export default async function SettlePage({
             <PlainBadge variant="default">Voided</PlainBadge>
           )}
         </div>
-        <h1 className="font-display text-[48px] font-medium text-ink-900 leading-[1.05]" style={{ letterSpacing: "-0.02em", fontOpticalSizing: "auto" }}>
+        <h1
+          className="font-display text-[48px] font-medium text-ink-900 leading-[1.05]"
+          style={{ letterSpacing: "-0.02em", fontOpticalSizing: "auto" }}
+        >
           Settlement · {artist?.name}
         </h1>
         <div className="text-[14px] text-ink-400 mt-3">
@@ -107,23 +148,53 @@ export default async function SettlePage({
         </div>
       </div>
 
-      {/* Disputed callout */}
-      {isDisputed && disputedRecoupValue > 0 && (
-        <div className="mb-8 rounded-lg border border-rose-200/60 bg-rose-50/40 p-5 flex gap-3">
-          <AlertTriangle className="h-4 w-4 text-rose-700 mt-0.5 shrink-0" />
+      {/* ── Data anomaly: TM signed off but status shows disputed ─────────── */}
+      {tmSignedOffPositively && (
+        <div className="mb-6 rounded-lg border border-amber-200/70 bg-amber-50/50 p-5 flex gap-3">
+          <AlertTriangle className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
           <div>
-            <div className="text-[13px] font-semibold text-rose-800">
-              {disputedRecoups.length} recoup{disputedRecoups.length === 1 ? "" : "s"} in dispute · {formatMoney(disputedRecoupValue)} contested
+            <div className="text-[13px] font-semibold text-amber-900">
+              TM signed off in the room — dispute came from the agent afterward
             </div>
             <p className="text-[12.5px] text-ink-600 mt-1 leading-relaxed">
-              The artist team has flagged recoup line items. This settlement cannot be finalized until the dispute is resolved.
+              The tour manager&apos;s sign-off (&ldquo;
+              {settlement?.signoffText}&rdquo;) indicates in-room agreement.
+              This settlement was marked disputed after the fact — likely from
+              an agent email the next day. The TM&apos;s position at the table
+              and the agent&apos;s later read may differ.
             </p>
           </div>
         </div>
       )}
 
+      {/* ── Standard disputed callout ──────────────────────────────────────── */}
+      {isDisputed && !tmSignedOffPositively && disputedRecoupValue > 0 && (
+        <div className="mb-6 rounded-lg border border-rose-200/60 bg-rose-50/40 p-5 flex gap-3">
+          <AlertTriangle className="h-4 w-4 text-rose-700 mt-0.5 shrink-0" />
+          <div>
+            <div className="text-[13px] font-semibold text-rose-800">
+              {disputedRecoups.length} recoup
+              {disputedRecoups.length === 1 ? "" : "s"} in dispute ·{" "}
+              {formatMoney(disputedRecoupValue)} contested
+            </div>
+            <p className="text-[12.5px] text-ink-600 mt-1 leading-relaxed">
+              The artist team has flagged recoup line items. This settlement
+              cannot be finalized until the dispute is resolved.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Deal health warnings ──────────────────────────────────────────── */}
+      {healthWarnings.length > 0 && (
+        <DealHealthSection warnings={healthWarnings} />
+      )}
+
       {settlement && (
-        <LifecycleBar settlement={settlement} disputedRecoups={disputedRecoups.length} />
+        <LifecycleBar
+          settlement={settlement}
+          disputedRecoups={disputedRecoups.length}
+        />
       )}
 
       <div className="space-y-6 mt-6">
@@ -139,13 +210,21 @@ export default async function SettlePage({
             expenseRowCount={expenses.length}
           />
         ) : (
-          <SupportedSettlement calc={calc} existingSettlement={settlement} />
+          <SupportedSettlement
+            calc={calc}
+            existingSettlement={settlement}
+            dealNotesFreetext={deal.dealNotesFreetext}
+            expenseRows={expenses}
+          />
         )}
 
         {recoups.length > 0 && <RecoupsSection recoups={recoups} />}
 
         {settlement && (settlement.signoffText || settlement.notes) && (
-          <SignoffSection settlement={settlement} />
+          <SignoffSection
+            settlement={settlement}
+            tmSignedOffPositively={tmSignedOffPositively}
+          />
         )}
       </div>
 
@@ -153,7 +232,10 @@ export default async function SettlePage({
         <div className="flex gap-4 items-start max-w-3xl">
           <Logomark size={40} className="shrink-0" />
           <div>
-            <h2 className="font-display text-[20px] font-medium text-ink-900 mb-2" style={{ letterSpacing: "-0.02em" }}>
+            <h2
+              className="font-display text-[20px] font-medium text-ink-900 mb-2"
+              style={{ letterSpacing: "-0.02em" }}
+            >
               You&apos;re looking at the seam this case study is about.
             </h2>
             <p className="text-[13px] text-ink-500 leading-relaxed">
@@ -176,6 +258,8 @@ export default async function SettlePage({
   );
 }
 
+// ── Sub-components ─────────────────────────────────────────────────────────
+
 function BackLink({ showId }: { showId: string }) {
   return (
     <Link
@@ -184,6 +268,41 @@ function BackLink({ showId }: { showId: string }) {
     >
       <ArrowLeft className="h-3.5 w-3.5" /> Back to show
     </Link>
+  );
+}
+
+function DealHealthSection({ warnings }: { warnings: DealHealthWarning[] }) {
+  return (
+    <div className="mb-6 space-y-2">
+      {warnings.map((w) => (
+        <div
+          key={w.code}
+          className={`rounded-lg border p-4 flex gap-3 ${
+            w.severity === "warn"
+              ? "border-amber-200/70 bg-amber-50/50"
+              : "border-sky-200/70 bg-sky-50/40"
+          }`}
+        >
+          {w.severity === "warn" ? (
+            <ShieldAlert className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
+          ) : (
+            <Info className="h-4 w-4 text-sky-700 mt-0.5 shrink-0" />
+          )}
+          <div>
+            <div
+              className={`text-[13px] font-semibold ${w.severity === "warn" ? "text-amber-900" : "text-sky-900"}`}
+            >
+              {w.message}
+            </div>
+            {w.detail && (
+              <p className="text-[12.5px] text-ink-600 mt-1 leading-relaxed">
+                {w.detail}
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -310,9 +429,7 @@ function LifecycleBar({
             const Icon = stage.icon;
 
             const stageDot = (() => {
-              if (isComplete) {
-                return "bg-brand-700 ring-brand-700 text-white";
-              }
+              if (isComplete) return "bg-brand-700 ring-brand-700 text-white";
               if (isCurrent) {
                 return isDisputed
                   ? "bg-rose-50 ring-rose-500 text-rose-700"
@@ -376,23 +493,16 @@ function UnsupportedDeal({
   ticketCount: number;
   expenseRowCount: number;
 }) {
-  const friendly: Record<string, string> = {
-    flat: "flat guarantee",
-    percentage_of_gross: "percentage of gross",
-    percentage_of_net: "percentage of net",
-    vs: "vs deal",
-    door: "door deal",
-  };
-
   return (
     <>
       <Card accent="amber">
         <CardContent className="py-12 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 ring-1 ring-amber-200/80 mb-5">
-            <FileWarning className="h-5 w-5 text-amber-700" />
-          </div>
-          <h2 className="font-display text-[22px] font-medium text-ink-900 mb-2" style={{ letterSpacing: "-0.02em" }}>
-            The in-app tool can&apos;t settle a {friendly[dealType] ?? dealType} yet.
+          <h2
+            className="font-display text-[22px] font-medium text-ink-900 mb-2"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            The in-app tool can&apos;t settle a{" "}
+            {DEAL_TYPE_LABELS[dealType] ?? dealType} yet.
           </h2>
           <p className="text-[13px] text-ink-500 max-w-md mx-auto leading-relaxed">
             Mariana would do this on a Google Sheet at 2am tonight. The inputs
@@ -407,7 +517,6 @@ function UnsupportedDeal({
             <CardTitle>What the system has</CardTitle>
             <CardDescription>
               The inputs Mariana would pull together to settle this show.
-              They&apos;re here — but disconnected from the deal terms.
             </CardDescription>
           </div>
         </CardHeader>
@@ -425,7 +534,6 @@ function UnsupportedDeal({
               value={formatMoney(grossSoFar - totalFees)}
             />
           </div>
-
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-5">
             <Field label="Tickets sold" mono value={String(ticketCount)} />
             <Field
@@ -439,7 +547,6 @@ function UnsupportedDeal({
               value={formatMoney(totalExpenses)}
             />
           </div>
-
           {deal?.dealNotesFreetext && (
             <div className="mt-6">
               <div className="eyebrow text-[10px] text-ink-500 mb-2">
@@ -455,7 +562,9 @@ function UnsupportedDeal({
 
       {existingSettlement?.totalToArtist != null && (
         <Card
-          accent={existingSettlement.status === "disputed" ? "rose" : "brand"}
+          accent={
+            existingSettlement.status === "disputed" ? "rose" : "brand"
+          }
         >
           <CardHeader>
             <div>
@@ -474,7 +583,10 @@ function UnsupportedDeal({
           <CardContent>
             <div className="flex items-baseline justify-between py-2">
               <span className="text-[13px] text-ink-600">Total to artist</span>
-              <span className="text-[32px] font-mono tabular font-semibold text-ink-900" style={{ letterSpacing: "-0.02em" }}>
+              <span
+                className="text-[32px] font-mono tabular font-semibold text-ink-900"
+                style={{ letterSpacing: "-0.02em" }}
+              >
                 {formatMoney(existingSettlement.totalToArtist)}
               </span>
             </div>
@@ -488,20 +600,30 @@ function UnsupportedDeal({
 function SupportedSettlement({
   calc,
   existingSettlement,
+  dealNotesFreetext,
+  expenseRows,
 }: {
-  calc: Extract<
-    ReturnType<typeof calculateSettlement>,
-    { supported: true }
-  >;
+  calc: Extract<ReturnType<typeof calculateSettlement>, { supported: true }>;
   existingSettlement: NonNullable<
     Awaited<ReturnType<typeof getShowById>>
   >["settlement"];
+  dealNotesFreetext?: string | null;
+  expenseRows: NonNullable<
+    Awaited<ReturnType<typeof getShowById>>
+  >["expenses"];
 }) {
+  const prevSettledAmount = existingSettlement?.totalToArtist;
+  const hasDivergence =
+    prevSettledAmount != null &&
+    Math.abs(prevSettledAmount - calc.totalToArtist) > 0.5;
+
   return (
     <>
       {/* Hero number */}
       <div className="text-center py-10 mb-2">
-        <div className="eyebrow text-[10px] text-ink-400 mb-3">Total to artist</div>
+        <div className="eyebrow text-[10px] text-ink-400 mb-3">
+          Total to artist
+        </div>
         <div
           className="text-[72px] font-mono tabular font-bold text-ink-900 leading-none"
           style={{ letterSpacing: "-0.03em" }}
@@ -520,64 +642,112 @@ function SupportedSettlement({
             ) : null}
           </div>
         )}
-        {existingSettlement?.totalToArtist != null &&
-          existingSettlement.totalToArtist !== calc.totalToArtist && (
-          <div className="text-[12px] text-ink-400 mt-2">
-            Originally settled at{" "}
-            <span className="font-mono tabular text-ink-600">
-              {formatMoney(existingSettlement.totalToArtist)}
+        {hasDivergence && prevSettledAmount != null && (
+          <div className="text-[12px] text-amber-700 mt-3 flex items-center justify-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Spreadsheet settled at{" "}
+            <span className="font-mono tabular font-medium">
+              {formatMoney(prevSettledAmount)}
+            </span>{" "}
+            — differs by{" "}
+            <span className="font-mono tabular font-medium">
+              {formatMoney(Math.abs(prevSettledAmount - calc.totalToArtist))}
             </span>
           </div>
         )}
       </div>
 
-      {/* Worksheet breakdown */}
+      {/* vs deal winner callout */}
+      {calc.vsWinner != null && (
+        <div
+          className={`rounded-lg border px-5 py-4 flex items-center gap-3 ${
+            calc.vsWinner === "percentage"
+              ? "border-brand-200/60 bg-brand-50/30"
+              : "border-ink-200/60 bg-canvas-soft"
+          }`}
+        >
+          <div className="text-[12.5px] text-ink-700">
+            <span className="font-semibold">
+              {calc.vsWinner === "percentage"
+                ? "Percentage payout wins"
+                : "Guarantee holds"}
+            </span>
+            {" — "}
+            {calc.vsWinner === "percentage" ? (
+              <>
+                {formatMoney(calc.vsPercentagePayout)} &gt;{" "}
+                {formatMoney(calc.vsGuarantee)} guarantee
+              </>
+            ) : (
+              <>
+                {formatMoney(calc.vsGuarantee)} guarantee &gt;{" "}
+                {formatMoney(calc.vsPercentagePayout)} percentage
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main worksheet */}
       <Card accent="brand">
         <CardHeader>
           <div>
             <CardTitle>Settlement worksheet</CardTitle>
-            <CardDescription className="font-mono">
+            <CardDescription className="font-mono text-[11px] break-all">
               {calc.finalFormula}
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="divide-y divide-ink-100/80">
-          <Row
-            label="Gross box office"
-            value={formatMoney(calc.grossBoxOffice)}
-          />
-          <Row label="Net box office" value={formatMoney(calc.netBoxOffice)} />
-          <Row
-            label="Total expenses (passed through)"
-            value={formatMoney(calc.totalExpenses)}
-          />
-          <div className="pt-3" />
-          {calc.steps.map((step, i) => (
-            <Row
-              key={i}
-              label={step.label}
-              value={formatMoney(step.value)}
-              note={step.note}
-            />
-          ))}
-          <div className="pt-3" />
-          <div className="flex items-baseline justify-between py-3 font-semibold">
-            <span className="text-[13px] text-ink-900">Total to artist</span>
-            <span className="text-[18px] font-mono tabular text-ink-900">
-              {formatMoney(calc.totalToArtist)}
-            </span>
+        <CardContent>
+          <div className="divide-y divide-ink-100/80">
+            {calc.steps.map((step, i) => (
+              <WorksheetRow key={i} step={step} />
+            ))}
+            <div className="pt-3" />
+            <div className="flex items-baseline justify-between py-3 font-semibold">
+              <span className="text-[13px] text-ink-900">Total to artist</span>
+              <span className="text-[18px] font-mono tabular text-ink-900">
+                {formatMoney(calc.totalToArtist)}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Expense breakdown — sources the TM can ask about */}
+      {expenseRows.length > 0 && (
+        <ExpenseBreakdown expenseRows={expenseRows} />
+      )}
+
+      {/* Deal notes — the source of truth Mariana trusts */}
+      {dealNotesFreetext && (
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Deal notes</CardTitle>
+              <CardDescription>
+                The agreed terms as Mariana entered them. When structured fields
+                and deal notes conflict, this is what matters.
+              </CardDescription>
+            </div>
+            <PlainBadge variant="default">Source of truth</PlainBadge>
+          </CardHeader>
+          <CardContent>
+            <div className="text-[13px] text-ink-800 bg-canvas-soft rounded-lg p-4 ring-1 ring-ink-200/60 leading-relaxed whitespace-pre-wrap">
+              {dealNotesFreetext}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bonuses not triggered */}
       {calc.bonusesNotTriggered.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Bonuses not triggered</CardTitle>
             <CardDescription>
-              Structured bonuses on this deal that didn&apos;t hit. Shown for
-              transparency — useful when the agent asks &quot;what about that
-              gross threshold bonus?&quot;
+              Structured bonuses on this deal that didn&apos;t hit. Useful when
+              the agent asks about a gross threshold or sellout bonus.
             </CardDescription>
           </CardHeader>
           <CardContent className="divide-y divide-ink-100/80">
@@ -593,7 +763,7 @@ function SupportedSettlement({
                   </div>
                 </div>
                 <div className="text-[12.5px] text-ink-300 font-mono tabular line-through">
-                  {formatMoney(b.amount)}
+                  {b.amount > 0 ? formatMoney(b.amount) : "—"}
                 </div>
               </div>
             ))}
@@ -601,6 +771,120 @@ function SupportedSettlement({
         </Card>
       )}
     </>
+  );
+}
+
+function WorksheetRow({
+  step,
+}: {
+  step: { label: string; value: number; note?: string; isSubtotal?: boolean; isDeduction?: boolean };
+}) {
+  const isNeg = step.value < 0;
+  const valueDisplay = formatMoney(Math.abs(step.value));
+
+  return (
+    <div
+      className={`flex items-start justify-between py-2.5 gap-4 ${step.isSubtotal ? "mt-1" : ""}`}
+    >
+      <div className="min-w-0 flex-1">
+        <div
+          className={`text-[13px] leading-snug ${
+            step.isSubtotal ? "font-semibold text-ink-900" : "text-ink-600"
+          }`}
+        >
+          {step.label}
+        </div>
+        {step.note && (
+          <div className="text-[11.5px] text-ink-400 mt-0.5 max-w-md leading-snug">
+            {step.note}
+          </div>
+        )}
+      </div>
+      <div
+        className={`text-[13.5px] font-mono tabular shrink-0 flex items-center gap-1 ${
+          step.isSubtotal
+            ? "font-semibold text-ink-900"
+            : isNeg || step.isDeduction
+              ? "text-rose-700"
+              : "text-ink-900"
+        }`}
+      >
+        {(isNeg || step.isDeduction) && (
+          <TrendingDown className="h-3 w-3 opacity-60" />
+        )}
+        {isNeg ? `(${valueDisplay})` : valueDisplay}
+      </div>
+    </div>
+  );
+}
+
+function ExpenseBreakdown({
+  expenseRows,
+}: {
+  expenseRows: NonNullable<Awaited<ReturnType<typeof getShowById>>>["expenses"];
+}) {
+  const passed = expenseRows.filter((e) => !e.absorbedByVenue);
+  const absorbed = expenseRows.filter((e) => e.absorbedByVenue);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div>
+          <CardTitle>Expense breakdown</CardTitle>
+          <CardDescription>
+            Every line the TM might ask about. Absorbed costs don&apos;t come
+            off the artist&apos;s payout — they&apos;re the venue&apos;s.
+          </CardDescription>
+        </div>
+        <PlainBadge variant="default">
+          {passed.length} passed through
+        </PlainBadge>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-1">
+          {passed.map((e) => (
+            <div
+              key={e.id}
+              className="flex items-baseline justify-between py-2 border-b border-ink-100/60 last:border-0 gap-3"
+            >
+              <div className="min-w-0">
+                <div className="text-[13px] text-ink-800 capitalize">
+                  {e.description ?? e.category}
+                </div>
+                <div className="text-[11px] text-ink-400 mt-0.5 capitalize">
+                  {e.category}
+                </div>
+              </div>
+              <div className="text-[13px] font-mono tabular text-ink-900 shrink-0">
+                {formatMoney(e.amount)}
+              </div>
+            </div>
+          ))}
+          {absorbed.length > 0 && (
+            <>
+              <div className="pt-3 pb-1">
+                <div className="eyebrow text-[10px] text-ink-400">
+                  Absorbed by venue (not deducted from artist)
+                </div>
+              </div>
+              {absorbed.map((e) => (
+                <div
+                  key={e.id}
+                  className="flex items-baseline justify-between py-2 gap-3 opacity-50"
+                >
+                  <div className="text-[13px] text-ink-600 capitalize">
+                    {e.description ?? e.category}
+                  </div>
+                  <div className="text-[13px] font-mono tabular text-ink-500 line-through">
+                    {formatMoney(e.amount)}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -658,21 +942,43 @@ function RecoupsSection({ recoups }: { recoups: Recoup[] }) {
   );
 }
 
-function SignoffSection({ settlement }: { settlement: Settlement }) {
+function SignoffSection({
+  settlement,
+  tmSignedOffPositively,
+}: {
+  settlement: Settlement;
+  tmSignedOffPositively: boolean;
+}) {
   return (
-    <Card>
+    <Card accent={tmSignedOffPositively ? "amber" : undefined}>
       <CardHeader>
         <CardTitle>Sign-off & notes</CardTitle>
+        {tmSignedOffPositively && (
+          <PlainBadge variant="amber">TM agreed at the table</PlainBadge>
+        )}
       </CardHeader>
       <CardContent className="space-y-5">
         {settlement.signoffText && (
           <div>
             <div className="eyebrow text-[10px] text-ink-500 mb-2">
-              From the artist team
+              From the artist team (tour manager, at the table)
             </div>
-            <div className="text-[13px] text-ink-800 bg-canvas-soft rounded-lg p-4 ring-1 ring-ink-200/60 leading-relaxed">
+            <div
+              className={`text-[13px] text-ink-800 rounded-lg p-4 ring-1 leading-relaxed ${
+                tmSignedOffPositively
+                  ? "bg-amber-50/40 ring-amber-200/60"
+                  : "bg-canvas-soft ring-ink-200/60"
+              }`}
+            >
               &ldquo;{settlement.signoffText}&rdquo;
             </div>
+            {tmSignedOffPositively && (
+              <p className="text-[11.5px] text-amber-700 mt-2">
+                This is the TM&apos;s in-room agreement. The current
+                &ldquo;Disputed&rdquo; status reflects a subsequent challenge
+                from the agent — not this sign-off.
+              </p>
+            )}
           </div>
         )}
         {settlement.notes && (
@@ -687,31 +993,5 @@ function SignoffSection({ settlement }: { settlement: Settlement }) {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function Row({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note?: string;
-}) {
-  return (
-    <div className="flex items-baseline justify-between py-2.5">
-      <div>
-        <div className="text-[13px] text-ink-600">{label}</div>
-        {note && (
-          <div className="text-[11.5px] text-ink-400 mt-0.5 max-w-md leading-snug">
-            {note}
-          </div>
-        )}
-      </div>
-      <div className="text-[13.5px] text-ink-900 font-mono tabular">
-        {value}
-      </div>
-    </div>
   );
 }
