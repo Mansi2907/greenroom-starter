@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Greenroom Settlement Memo — Mansi Narwade</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1814;
+    --ink-2: #3d3a35;
+    --ink-3: #6b6760;
+    --ink-4: #9c9894;
+    --brand: #1a6b4a;
+    --brand-light: #eaf4ef;
+    --amber: #92400e;
+    --amber-light: #fffbeb;
+    --rose: #9f1239;
+    --rose-light: #fff1f2;
+    --canvas: #faf7f0;
+    --rule: #e8e4dc;
+    --page-width: 680px;
+  }
+
+  html { background: #f0ece4; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    background: var(--canvas);
+    max-width: var(--page-width);
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  /* ── Cover strip ────────────────────────────────────── */
+  .cover {
+    background: var(--ink);
+    color: white;
+    padding: 52px 52px 44px;
+  }
+
+  .cover-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8a8680;
+    margin-bottom: 18px;
+  }
+
+  .cover-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: white;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+
+  .cover-subtitle {
+    font-size: 15px;
+    color: #c4bfb8;
+    font-weight: 400;
+    margin-bottom: 32px;
+  }
+
+  .cover-meta {
+    display: flex;
+    gap: 32px;
+    border-top: 1px solid #333;
+    padding-top: 24px;
+  }
+
+  .meta-item { }
+  .meta-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #6b6760;
+    margin-bottom: 3px;
+  }
+  .meta-value {
+    font-size: 12px;
+    color: #c4bfb8;
+  }
+
+  /* ── Body content ───────────────────────────────────── */
+  .content {
+    padding: 48px 52px 60px;
+  }
+
+  /* ── Section headers ────────────────────────────────── */
+  .section {
+    margin-bottom: 40px;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid var(--rule);
+  }
+
+  h3 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+
+  p {
+    margin-bottom: 12px;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+
+  p:last-child { margin-bottom: 0; }
+
+  strong { color: var(--ink); font-weight: 600; }
+
+  em { color: var(--ink-3); font-style: italic; }
+
+  /* ── Callout (the slice) ────────────────────────────── */
+  .callout {
+    background: var(--brand-light);
+    border-left: 3px solid var(--brand);
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 20px;
+  }
+  .callout p {
+    color: #14532d;
+    font-weight: 500;
+    margin: 0;
+  }
+  .callout .callout-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--brand);
+    margin-bottom: 6px;
+  }
+
+  /* ── Stat pills ─────────────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .stat-pill {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 16px 16px 14px;
+    text-align: center;
+  }
+
+  .stat-number {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 5px;
+  }
+
+  .stat-number.brand { color: var(--brand); }
+  .stat-number.amber { color: var(--amber); }
+  .stat-number.rose  { color: var(--rose); }
+
+  .stat-label {
+    font-size: 10.5px;
+    color: var(--ink-4);
+    line-height: 1.4;
+  }
+
+  /* ── Anomaly cards ──────────────────────────────────── */
+  .anomaly {
+    border: 1px solid;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .anomaly.warn {
+    border-color: #fcd34d;
+    background: var(--amber-light);
+  }
+  .anomaly.danger {
+    border-color: #fca5a5;
+    background: var(--rose-light);
+  }
+  .anomaly.info {
+    border-color: #d1fae5;
+    background: var(--brand-light);
+  }
+
+  .anomaly-icon {
+    font-size: 16px;
+    line-height: 1;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .anomaly-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+
+  .anomaly-body {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  /* ── Table ──────────────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 12px;
+  }
+
+  th {
+    text-align: left;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+    padding: 8px 12px;
+    background: white;
+    border-bottom: 1.5px solid var(--rule);
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink-2);
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  td:first-child { font-weight: 600; color: var(--ink); }
+
+  td code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    background: #f0ece4;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--brand);
+  }
+
+  /* ── Bullet list ────────────────────────────────────── */
+  ul {
+    padding-left: 0;
+    list-style: none;
+    margin: 12px 0;
+  }
+
+  ul li {
+    padding: 5px 0 5px 20px;
+    position: relative;
+    font-size: 13px;
+    color: var(--ink-2);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  ul li:last-child { border-bottom: none; }
+
+  ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--brand);
+    font-size: 12px;
+    top: 6px;
+  }
+
+  ul li strong {
+    display: block;
+    color: var(--ink);
+    font-size: 12px;
+    margin-bottom: 1px;
+  }
+
+  ul li span {
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+
+  /* ── What's next numbered list ──────────────────────── */
+  .next-list {
+    counter-reset: next-counter;
+    list-style: none;
+    padding: 0;
+    margin: 16px 0;
+  }
+
+  .next-list li {
+    counter-increment: next-counter;
+    padding: 14px 16px 14px 52px;
+    position: relative;
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .next-list li::before {
+    content: counter(next-counter);
+    position: absolute;
+    left: 16px;
+    top: 14px;
+    width: 22px;
+    height: 22px;
+    background: var(--brand);
+    color: white;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .next-list li strong {
+    display: block;
+    font-size: 12.5px;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+
+  .next-list li span {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.5;
+  }
+
+  /* ── Metric boxes ───────────────────────────────────── */
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .metric-box {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .metric-box .metric-name {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+
+  .metric-box .metric-target {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--brand);
+    margin-bottom: 4px;
+  }
+
+  .metric-box .metric-desc {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* ── Cut items ──────────────────────────────────────── */
+  .cut-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .cut-item:last-child { border-bottom: none; }
+
+  .cut-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cut-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #f0ece4;
+    color: var(--ink-3);
+  }
+
+  .cut-body {
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ── Footer ─────────────────────────────────────────── */
+  .footer {
+    background: var(--ink);
+    padding: 20px 52px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-left {
+    font-size: 11px;
+    color: #6b6760;
+  }
+
+  .footer-right {
+    font-size: 11px;
+    color: #6b6760;
+    font-family: 'SF Mono', monospace;
+  }
+
+  /* ── Print ──────────────────────────────────────────── */
+  @media print {
+    html { background: white; }
+    body { max-width: 100%; }
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .callout, .stat-pill, .anomaly, .metric-box, .next-list li { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── COVER ─────────────────────────────────────────────── -->
+<div class="cover">
+  <div class="cover-eyebrow">Greenroom · Applied AI PM Case Study</div>
+  <div class="cover-title">Settlement at The Crescent:<br>Vs Deal Calculator &amp; Transparent Math</div>
+  <div class="cover-subtitle">Feature Memo &amp; Design Rationale</div>
+  <div class="cover-meta">
+    <div class="meta-item">
+      <div class="meta-label">Candidate</div>
+      <div class="meta-value">Mansi Narwade</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Slice</div>
+      <div class="meta-value">Deal Calculator + Calculation Transparency</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Branch</div>
+      <div class="meta-value">feature/vs-deal-calculator</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONTENT ───────────────────────────────────────────── -->
+<div class="content">
+
+  <!-- THE SLICE -->
+  <div class="section">
+    <h2>The Slice I Picked</h2>
+    <div class="callout">
+      <div class="callout-label">Tightly coupled pair</div>
+      <p>Vs deal support + step-by-step calculation transparency. The calculator without the transparency doesn't solve the trust problem. The transparency without the calculator is useless for 63% of shows. They ship together or not at all.</p>
+    </div>
+  </div>
+
+  <!-- DATA FINDINGS -->
+  <div class="section">
+    <h2>What the Data Said</h2>
+    <p>I queried the database directly before picking a slice. Three things shaped the decision.</p>
+
+    <div class="stats-row">
+      <div class="stat-pill">
+        <div class="stat-number brand">63%</div>
+        <div class="stat-label">of shows hit the "unsupported" empty state</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-number amber">22</div>
+        <div class="stat-label">disputed settlements with positive TM sign-offs</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-number rose">3</div>
+        <div class="stat-label">deals where structured fields contradict the freetext</div>
+      </div>
+    </div>
+
+    <div class="anomaly info">
+      <div class="anomaly-icon">📊</div>
+      <div>
+        <div class="anomaly-title">188 vs deals, 119 percentage-of-net, 30 door deals — all unsupported</div>
+        <p class="anomaly-body">The two supported types (flat, % of gross) cover only 203 of 537 shows. This is the largest single driver of the 82% spreadsheet rate the CEO flagged. Mariana hits the amber "unsupported" card for nearly every show she books.</p>
+      </div>
+    </div>
+
+    <div class="anomaly warn">
+      <div class="anomaly-icon">⚠️</div>
+      <div>
+        <div class="anomaly-title">22 "Disputed" settlements have positive TM sign-offs</div>
+        <p class="anomaly-body">Status shows <em>disputed</em>. Signoff text reads "Looks good — TM", "👍", "OK. Good night." One internal note says: "TM signed off Sunday morning. His assistant emailed Monday questioning the production-overage line." The product has no way to distinguish in-room TM disputes from agent challenges the next morning. That's a product gap — and a trust signal agents use to evaluate venues.</p>
+      </div>
+    </div>
+
+    <div class="anomaly danger">
+      <div class="anomaly-icon">🔴</div>
+      <div>
+        <div class="anomaly-title">Show 0007 (Briar Road): structured fields are stale</div>
+        <p class="anomaly-body">Deal notes say a bonus threshold changed to $6,000 via phone call four days before the show — but "structured field still reflects original $11,000. Confirm before settlement." Show 0005 (Winter Circle) was renegotiated from 75/25 to 85/15, but the stored percentage is still 0.75. A calculator that runs blind on structured fields produces the wrong answer.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHY THIS SLICE -->
+  <div class="section">
+    <h2>Why This Slice, Not the Others</h2>
+    <ul>
+      <li>
+        <strong>Agent portal / pre-show sharing</strong>
+        <span>Diego asked for it. Sarah Kim asked for it. Real value — but requires auth for an external party. The right next sprint, not this one. The TM gets the transparent worksheet at the table; that's what matters at 2am.</span>
+      </li>
+      <li>
+        <strong>Pre-show risk flagging</strong>
+        <span>Marcus wants to know Wednesday if a deal will be messy. Requires heuristics across show history and a pre-show state machine. Different timing, different surface, different sprint.</span>
+      </li>
+      <li>
+        <strong>Dispute resolution workflow</strong>
+        <span>Downstream of the calculator. You need correct math before you can adjudicate disagreements about it.</span>
+      </li>
+      <li>
+        <strong>AI deal-term parsing from freetext</strong>
+        <span>The upstream fix — the Coastal Spell dispute ($720 + agent goodwill) traces back to an 80-word ambiguous deal email. But parsing prose deal terms reliably is hard; the stakes of a wrong parse are high. The right bet is structured deal entry at booking time, not real-time parsing at settlement.</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- WHAT I BUILT -->
+  <div class="section">
+    <h2>What I Built</h2>
+
+    <h3>1 · Calculator for all major deal types</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Deal type</th>
+          <th>What it computes</th>
+          <th>Shows unblocked</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>vs</td>
+          <td><code>max(guarantee, % × net)</code> — or vs-gross variant</td>
+          <td>188</td>
+        </tr>
+        <tr>
+          <td>percentage_of_net</td>
+          <td><code>% × (net − capped expenses)</code></td>
+          <td>119</td>
+        </tr>
+        <tr>
+          <td>door</td>
+          <td><code>gross − capped expenses</code>, artist takes 100%</td>
+          <td>30</td>
+        </tr>
+        <tr>
+          <td>tier ratchet (within vs)</td>
+          <td>Fill rate → applicable tier → overrides base %</td>
+          <td>included above</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Expense caps are applied and called out explicitly when actual costs exceed the cap — a common source of TM confusion. Absorbed expenses are excluded from the deduction and shown separately.</p>
+
+    <h3>2 · Step-by-step settlement worksheet</h3>
+    <p>Every deal type now produces an ordered breakdown: each deduction on its own line, source noted, subtotals bolded, deductions in red. The formula is shown in the card header. This directly addresses what Diego asked for ("I want to see the math") and what Sarah Kim asked for ("provenance — I want to trace each line to a source").</p>
+    <p>A "vs deal winner" callout names which side of the deal won — "Percentage payout wins — $5,197 &gt; $1,405 guarantee" — matching how Mariana explains it at the table.</p>
+
+    <h3>3 · Deal health warnings</h3>
+    <p>Two warnings, surfaced before the worksheet so Mariana sees them before the TM sits down:</p>
+    <p><strong>Stale structured fields</strong> — fires when deal notes contain "renegotiated", "updated", "structured field still reflects", or "confirm before settlement". Tells Mariana to verify the fields before running the calculation.</p>
+    <p><strong>Disputed-with-positive-signoff</strong> — when status is <em>disputed</em> but signoff text is positive ("looks good", "👍", "wire"), a distinct amber banner explains: "TM signed off in the room — dispute came from the agent afterward." The sign-off block is styled to make the distinction visible.</p>
+  </div>
+
+  <!-- DESIGN CHOICES -->
+  <div class="section">
+    <h2>Design Choices</h2>
+    <p><strong>Calculator uses structured fields; freetext is shown for human verification.</strong> I considered LLM-parsing deal terms from freetext. Decided against it: a wrong parse at settlement is high-stakes (wrong amount wired), and the right upstream fix is structured deal entry at booking time — not real-time parsing. The calculator uses structured fields; the deal notes block is shown prominently so both parties can catch stale data.</p>
+    <p><strong>Health warnings are Mariana's, not the TM's.</strong> Surfacing uncertainty to the TM mid-table creates anxiety that doesn't help anyone. Mariana resolves it before they sit down.</p>
+    <p><strong>Expense cap logic is explicit.</strong> When actual expenses exceed the cap, the worksheet shows both: "Actual expenses $1,717 capped at $700." Prevents the TM asking "why is this lower than the receipts?"</p>
+  </div>
+
+  <!-- WHAT I CUT -->
+  <div class="section">
+    <h2>What I Cut &amp; Why</h2>
+
+    <div class="cut-item">
+      <div class="cut-title">Walkout pot dynamic computation <span class="cut-badge">Next sprint</span></div>
+      <p class="cut-body">The bonus schema models walkout pots as gross_threshold bonuses with a fixed amount. The real logic — "100% of gross above $X" — needs dynamic calculation. The stored amounts are close enough for the prototype; a real ship needs a schema extension (<code>walkout_threshold</code>, <code>walkout_rate</code>) or a parsed interpretation.</p>
+    </div>
+
+    <div class="cut-item">
+      <div class="cut-title">Mobile / TM-facing shareable view <span class="cut-badge">Next sprint</span></div>
+      <p class="cut-body">Diego asked to review the settlement on his phone on the drive over. High value. Requires auth infrastructure for an external party that doesn't exist in the starter. The worksheet at the table serves the immediate 2am need; the shareable link is the follow-on.</p>
+    </div>
+
+    <div class="cut-item">
+      <div class="cut-title">Dispute resolution workflow <span class="cut-badge">Downstream</span></div>
+      <p class="cut-body">No resolution path for the "disputed" state — no way to mark a recoup withdrawn, send a revision, or log the conversation. That's the sprint after the calculator ships and adoption is validated.</p>
+    </div>
+  </div>
+
+  <!-- VALIDATION -->
+  <div class="section">
+    <h2>How I'd Validate This</h2>
+
+    <div class="metrics">
+      <div class="metric-box">
+        <div class="metric-name">In-app settlement rate</div>
+        <div class="metric-target">Target: &gt;50% of vs deals in-app within 60 days</div>
+        <p class="metric-desc">Currently 0% for vs deals. Measured by settlements with non-null <code>calculation_json</code> / total vs deal shows.</p>
+      </div>
+      <div class="metric-box">
+        <div class="metric-name">Dispute rate on vs deals</div>
+        <div class="metric-target">Target: 30% reduction vs baseline</div>
+        <p class="metric-desc">Hypothesis: transparent math reduces next-morning agent disputes. Current overall dispute rate: ~4.4% (22/537).</p>
+      </div>
+      <div class="metric-box">
+        <div class="metric-name">Health warning accuracy</div>
+        <div class="metric-target">Signal, not noise</div>
+        <p class="metric-desc">Track whether "stale fields" warnings correlate with actual disputes. Tune or suppress if false-positive rate is high.</p>
+      </div>
+      <div class="metric-box">
+        <div class="metric-name">Qualitative</div>
+        <div class="metric-target">Mariana stops using the spreadsheet</div>
+        <p class="metric-desc">Deploy to The Crescent first. Watch a settlement night. The test: does she show the TM the worksheet?</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT'S NEXT -->
+  <div class="section">
+    <h2>What I'd Ship Next</h2>
+    <ol class="next-list">
+      <li>
+        <strong>Structured deal entry at booking time</strong>
+        <span>Better deal entry form with explicit fields for expense cap, hospitality cap, marketing recoup placement ("inside or outside cap?"), and renegotiation history. Eliminates the freetext-structured gap and makes the health warnings unnecessary over time. This is the root-cause fix.</span>
+      </li>
+      <li>
+        <strong>Shareable settlement link for agents</strong>
+        <span>Read-only URL the agent can open the next morning — same step-by-step worksheet, no login required. Closes the "asymmetric document" problem Sarah Kim described: <em>"settlement becomes a structured collaboration, not a black box I open in the morning."</em></span>
+      </li>
+      <li>
+        <strong>Pre-show deal risk check</strong>
+        <span>Flag ambiguous terms before show night — recoup placement unclear, freetext/structured mismatch, expenses already trending above cap. Give Mariana and the agent a chance to resolve it Wednesday afternoon. Marcus's ask: <em>"If we could see Wednesday that this deal is going to have an ambiguous expense fight, we could resolve it cold."</em></span>
+      </li>
+    </ol>
+  </div>
+
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<div class="footer">
+  <div class="footer-left">Mansi Narwade · Greenroom Applied AI PM Case Study</div>
+  <div class="footer-right">github.com/Mansi2907/greenroom-starter · feature/vs-deal-calculator</div>
+</div>
+
+</body>
+</html>
